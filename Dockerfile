@@ -4,8 +4,8 @@ FROM node:18-alpine
 # Thiết lập thư mục làm việc
 WORKDIR /negan
 
-# Copy package.json và package-lock.json trước để tận dụng layer caching
-COPY package.json package-lock.json ./
+# Copy toàn bộ mã nguồn vào container
+COPY . .
 
 # Cài đặt các công cụ hệ thống cần thiết
 RUN apk --no-cache add \
@@ -20,9 +20,6 @@ RUN apk --no-cache add \
 
 # Cài đặt các dependency Node.js
 RUN npm ci --production --quiet --no-audit --no-fund
-
-# Copy toàn bộ mã nguồn vào container
-COPY . .
 
 # Cấp quyền thực thi cho start.sh
 RUN chmod +x start.sh
