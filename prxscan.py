@@ -5,8 +5,8 @@ import argparse
 import time
 
 # Cấu hình Telegram
-TELEGRAM_BOT_TOKEN = '7819235807:AAEpCtPhIAAjTJYz0Efho35YZVl6ikAxKtc'  # Thay thế bằng token của bot
-TELEGRAM_CHAT_ID = '1243471275'      # Thay thế bằng chat ID của bạn
+TELEGRAM_BOT_TOKEN = '7318225955:AAF6ZD3Hxvtj_vDj6fgpW3E3HXfIyzN1LD4'  # Thay thế bằng token của bot
+TELEGRAM_CHAT_ID = '7371969470'      # Thay thế bằng chat ID của bạn
 
 # Cấu hình regex và timeout
 PROXY_PATTERN = re.compile(r'\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}:[0-9]{1,5}\b')
