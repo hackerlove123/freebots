@@ -19,7 +19,7 @@ RUN apk --no-cache add \
     py3-requests
 
 # Cài đặt các dependency Node.js
-RUN npm ci --production --quiet --no-audit --no-fund
+RUN npm install --production --quiet --no-audit --no-fund
 
 # Cấp quyền thực thi cho start.sh
 RUN chmod +x start.sh
