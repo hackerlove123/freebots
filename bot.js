@@ -14,7 +14,7 @@ initBot = () => {
 
         if (text.startsWith('http')) {
             const [host, time] = text.split(' ');
-            if (!host || isNaN(time)) return bot.sendMessage(chatId, '🚫 Sai định dạng! Nhập theo: <code>https://example.com 60</code>.', { parse_mode: 'HTML' });
+            if (!host || isNaN(time)) return bot.sendMessage(chatId, '🚫 Sai định dạng! Nhập theo: <code>https://example.com 79</code>.', { parse_mode: 'HTML' });
             const attackTime = Math.min(parseInt(time, 10), maxTimeAttacks);
             if (userProcesses[userId] >= maxSlot) {
                 const remaining = Math.ceil((Object.values(activeAttacks).find(a => a.userId === userId)?.endTime - Date.now()) / 1000);
