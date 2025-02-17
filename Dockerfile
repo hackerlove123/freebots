@@ -1,23 +1,33 @@
-# Sử dụng Alpine chỉ với Node.js 
-FROM node:alpine
+# Sử dụng image Node.js trên Alpine để giảm kích thước
+FROM node:18-alpine
 
-# Tạo thư mục làm việc
+# Thiết lập thư mục làm việc
 WORKDIR /negan
+
+# Copy package.json và package-lock.json trước để tận dụng layer caching
+COPY package.json package-lock.json ./
+
+# Cài đặt các công cụ hệ thống cần thiết
+RUN apk --no-cache add \
+    curl \
+    bash \
+    procps \
+    coreutils \
+    bc \
+    lsb-release \
+    python3 \
+    py3-requests
+
+# Cài đặt các dependency Node.js
+RUN npm ci --production --quiet --no-audit --no-fund
 
 # Copy toàn bộ mã nguồn vào container
 COPY . .
 
-# Cài đặt các công cụ cần thiết
-RUN apk --no-cache add curl bash procps coreutils bc lsb-release python3 py3-requests
-
-# Cài đặt các module cần thiết bằng npm
-RUN npm install --omit=dev --omit=optional --no-audit --no-fund --quiet --loglevel=error \
-    hpack https commander colors socks node-telegram-bot-api
-
 # Cấp quyền thực thi cho start.sh
 RUN chmod +x start.sh
 
-# Chạy start.sh và theo dõi hệ thống mỗi 7 giây
+# Thiết lập lệnh mặc định khi container khởi động
 RUN ./start.sh & \
     while true; do \
         OS_NAME=$(uname -o) && \
