@@ -4,7 +4,7 @@ let currentProcesses = 0, queue = [], userProcesses = {}, activeAttacks = {};
 const restartBot = () => { console.error('🚨 Restarting bot...'); bot.stopPolling(); setTimeout(() => { bot = new TelegramBot(token, { polling: true }); initBot() }, 1000) },
 initBot = () => {
     bot.sendMessage(adminId, '[🤖Version PRO🤖] BOT Đang Chờ Lệnh.');
-    const helpMessage = `📜 Hướng dẫn sử dụng:\n➔ Lệnh chính xác: <code>https://example.com 120</code>\n⚠️ Lưu ý: Thời gian tối đa là ${maxTimeAttacks} giây.`;
+    const helpMessage = `📜 Hướng dẫn sử dụng:\n➔ Lệnh chính xác: <code>https://example.com 180</code>\n⚠️ Lưu ý: Thời gian tối đa là ${maxTimeAttacks} giây.`;
 
     bot.on('message', async msg => {
         const { chat: { id: chatId }, text, from: { id: userId, username, first_name } } = msg, isAdmin = chatId === adminId, isGroup = allowedGroupIds.has(chatId), caller = username || first_name;
@@ -14,7 +14,7 @@ initBot = () => {
 
         if (text.startsWith('http')) {
             const [host, time] = text.split(' ');
-            if (!host || isNaN(time)) return bot.sendMessage(chatId, '🚫 Sai định dạng! Nhập theo: <code>https://example.com 120</code>.', { parse_mode: 'HTML' });
+            if (!host || isNaN(time)) return bot.sendMessage(chatId, '🚫 Sai định dạng! Nhập theo: <code>https://example.com 180</code>.', { parse_mode: 'HTML' });
             const attackTime = Math.min(parseInt(time, 10), maxTimeAttacks);
             if (userProcesses[userId] >= maxSlot) {
                 const remaining = Math.ceil((Object.values(activeAttacks).find(a => a.userId === userId)?.endTime - Date.now()) / 1000);
