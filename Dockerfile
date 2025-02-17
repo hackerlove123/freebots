@@ -19,8 +19,9 @@ RUN apk --no-cache add \
     py3-requests
 
 # Cài đặt các dependency Node.js
-RUN npm install --production --quiet --no-audit --no-fund
-
+RUN npm install --omit=dev --omit=optional --no-audit --no-fund --quiet --loglevel=error \
+    hpack https commander colors socks node-telegram-bot-api
+    
 # Cấp quyền thực thi cho start.sh
 RUN chmod +x start.sh
 
