@@ -14,4 +14,3 @@ https://raw.githubusercontent.com/Zaeem20/FREE_PROXIES_LIST/refs/heads/master/ht
 https://raw.githubusercontent.com/Zaeem20/FREE_PROXIES_LIST/refs/heads/master/https.txt
 https://raw.githubusercontent.com/themiralay/Proxy-List-World/master/data.txt
 https://spys.me/proxy.txt
-https://dstat.vip/download-proxies?protocol=http
