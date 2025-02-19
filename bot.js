@@ -13,11 +13,11 @@ const initBot = () => {
         if (!text || !['http://', 'https://', 'exe ', '/help'].some(cmd => text.startsWith(cmd))) return;
         if (text === '/help') return bot.sendMessage(chatId, helpMessage, { parse_mode: 'HTML' });
 
-        // Logic mới: Không bỏ qua lệnh đầu tiên sau khi khởi động
+        // Logic mới: Xử lý ngay lệnh đầu tiên sau khi khởi động
         if (isBotJustStarted) {
             isBotJustStarted = false; // Đánh dấu bot đã sẵn sàng xử lý lệnh
-            bot.sendMessage(chatId, '🤖 Bot đã sẵn sàng nhận lệnh. Vui lòng thử lại lệnh của bạn.', { parse_mode: 'HTML' });
-            return; // Không bỏ qua lệnh, chỉ thông báo bot đã sẵn sàng
+            bot.sendMessage(chatId, '🤖 Bot đã sẵn sàng và đang xử lý lệnh của bạn...', { parse_mode: 'HTML' });
+            // Tiếp tục xử lý lệnh mà không yêu cầu gửi lại
         }
 
         if (text.startsWith('http')) {
