@@ -12,7 +12,13 @@ const initBot = () => {
         if (!isAdmin && !isGroup) return bot.sendMessage(chatId, '❌ Bạn không có quyền sử dụng liên hệ: @NeganSSHConsole.', { parse_mode: 'HTML' });
         if (!text || !['http://', 'https://', 'exe ', '/help'].some(cmd => text.startsWith(cmd))) return;
         if (text === '/help') return bot.sendMessage(chatId, helpMessage, { parse_mode: 'HTML' });
-        if (isBotJustStarted) { isBotJustStarted = false; return bot.sendMessage(chatId, `🚫 Đã bỏ qua lệnh "${text}" Hãy thử lại.`, { parse_mode: 'HTML' }); }
+
+        // Logic mới: Không bỏ qua lệnh đầu tiên sau khi khởi động
+        if (isBotJustStarted) {
+            isBotJustStarted = false; // Đánh dấu bot đã sẵn sàng xử lý lệnh
+            bot.sendMessage(chatId, '🤖 Bot đã sẵn sàng nhận lệnh. Vui lòng thử lại lệnh của bạn.', { parse_mode: 'HTML' });
+            return; // Không bỏ qua lệnh, chỉ thông báo bot đã sẵn sàng
+        }
 
         if (text.startsWith('http')) {
             const [host, time] = text.split(' ');
