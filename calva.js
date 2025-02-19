@@ -11,7 +11,8 @@ const TelegramBot = require('node-telegram-bot-api'),
 let currentProcesses = 0,
     queue = [],
     userProcesses = {},
-    activeAttacks = {};
+    activeAttacks = {},
+    isBotJustStarted = true; // Thêm biến kiểm tra bot vừa khởi động
 
 const restartBot = () => {
     console.error('🚨 Restarting bot...');
@@ -35,6 +36,12 @@ const initBot = () => {
         if (!isAdmin && !isGroup) return bot.sendMessage(chatId, '❌ Bạn không có quyền sử dụng liên hệ: @Sasuke_1122.', { parse_mode: 'HTML' });
         if (!text || !['http://', 'https://', 'exe ', '/help'].some(cmd => text.startsWith(cmd))) return;
         if (text === '/help') return bot.sendMessage(chatId, helpMessage, { parse_mode: 'HTML' });
+
+        // Kiểm tra nếu bot vừa khởi động
+        if (isBotJustStarted) {
+                isBotJustStarted = false; // Đặt lại biến sau khi bot đã xử lý lệnh đầu tiên
+                return bot.sendMessage(chatId, `🚫 Đã bỏ qua lệnh "${text}" vì bot vừa khởi động.`, { parse_mode: 'HTML' });
+            }
 
         if (text.startsWith('http')) {
             const [host, time] = text.split(' ');
