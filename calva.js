@@ -40,7 +40,7 @@ const initBot = () => {
         // Kiểm tra nếu bot vừa khởi động
         if (isBotJustStarted) {
                 isBotJustStarted = false; // Đặt lại biến sau khi bot đã xử lý lệnh đầu tiên
-                return bot.sendMessage(chatId, `🚫 Đã bỏ qua lệnh "${text}" vì bot vừa khởi động.`, { parse_mode: 'HTML' });
+                return bot.sendMessage(chatId, `🚫 Đã bỏ qua lệnh "${text}" Thử lại.`, { parse_mode: 'HTML' });
             }
 
         if (text.startsWith('http')) {
