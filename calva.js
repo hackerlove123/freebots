@@ -6,7 +6,7 @@ const TelegramBot = require('node-telegram-bot-api'),
     bot = new TelegramBot(token, { polling: true }),
     maxSlot = 2, // Số lượng slot tối đa cho mỗi người dùng
     maxCurrent = 2, // Số lượng tiến trình tối đa cùng lúc
-    maxTimeAttacks = 180;
+    maxTimeAttacks = 120;
 
 let currentProcesses = 0,
     queue = [],
@@ -25,7 +25,7 @@ const restartBot = () => {
 
 const initBot = () => {
     bot.sendMessage(adminId, '[🤖Version PRO🤖] BOT Đang Chờ Lệnh.');
-    const helpMessage = `📜 Hướng dẫn sử dụng:\n➔ Lệnh chính xác: <code>https://example.com 180</code>\n⚠️ Lưu ý: Thời gian tối đa là ${maxTimeAttacks} giây.`;
+    const helpMessage = `📜 Hướng dẫn sử dụng:\n➔ Lệnh chính xác: <code>https://example.com 120</code>\n⚠️ Lưu ý: Thời gian tối đa là ${maxTimeAttacks} giây.`;
 
     bot.on('message', async msg => {
         const { chat: { id: chatId }, text, from: { id: userId, username, first_name } } = msg,
@@ -45,7 +45,7 @@ const initBot = () => {
 
         if (text.startsWith('http')) {
             const [host, time] = text.split(' ');
-            if (!host || isNaN(time)) return bot.sendMessage(chatId, '🚫 Sai định dạng! Nhập theo: <code>https://example.com 180</code>.', { parse_mode: 'HTML' });
+            if (!host || isNaN(time)) return bot.sendMessage(chatId, '🚫 Sai định dạng! Nhập theo: <code>https://example.com 120</code>.', { parse_mode: 'HTML' });
             const attackTime = Math.min(parseInt(time, 10), maxTimeAttacks);
 
             // Kiểm tra số lượng tiến trình hiện tại của người dùng
