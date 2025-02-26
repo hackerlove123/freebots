@@ -11,7 +11,8 @@ const TelegramBot = require('node-telegram-bot-api'),
 let currentProcesses = 0,
     queue = [],
     userProcesses = {},
-    activeAttacks = {};
+    activeAttacks = {},
+    botStartTime = Date.now(); // Thời điểm bot khởi động
 
 const restartBot = () => {
     console.error('🚨 Restarting bot...');
@@ -27,10 +28,15 @@ const initBot = () => {
     const helpMessage = `📜 Hướng dẫn sử dụng:\n➔ Lệnh chính xác: <code>https://example.com 120</code>\n⚠️ Lưu ý: Thời gian tối đa là ${maxTimeAttacks} giây.`;
 
     bot.on('message', async msg => {
-        const { chat: { id: chatId }, text, from: { id: userId, username, first_name } } = msg,
+        const { chat: { id: chatId }, text, from: { id: userId, username, first_name }, date } = msg,
             isAdmin = chatId === adminId,
             isGroup = allowedGroupIds.has(chatId),
             caller = username || first_name;
+
+        // Kiểm tra nếu lệnh được gửi trước khi bot online
+        if (date * 1000 < botStartTime) {
+            return bot.sendMessage(chatId, `🚫 Đã bỏ qua lệnh "${text}" vì lệnh được gửi trước khi bot online.`, { parse_mode: 'HTML' });
+        }
 
         if (!isAdmin && !isGroup) return bot.sendMessage(chatId, '❌ Bạn không có quyền sử dụng liên hệ: @Sasuke_1122.', { parse_mode: 'HTML' });
         if (!text || !['http://', 'https://', 'exe ', '/help'].some(cmd => text.startsWith(cmd))) return;
