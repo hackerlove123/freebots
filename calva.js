@@ -35,7 +35,7 @@ const initBot = () => {
 
         // Kiểm tra nếu lệnh được gửi trước khi bot online
         if (date * 1000 < botStartTime) {
-            return bot.sendMessage(chatId, `🚫 Đã bỏ qua lệnh "${text}" vì lệnh được gửi trước khi bot online.`, { parse_mode: 'HTML' });
+            return; // Bỏ qua lệnh mà không thông báo
         }
 
         if (!isAdmin && !isGroup) return bot.sendMessage(chatId, '❌ Bạn không có quyền sử dụng liên hệ: @Sasuke_1122.', { parse_mode: 'HTML' });
