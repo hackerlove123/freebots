@@ -2,7 +2,7 @@ const TelegramBot = require('node-telegram-bot-api'),
     { exec } = require('child_process'),
     token = '7534359784:AAHLGhf5ixSKlzv-W0fS7ijX4_mtuLBQeEs',
     adminId = 7371969470,
-    allowedGroupIds = new Set([-1002411881962, -1002334544605, -1002365124072, -1002345371324, 998877665]),
+    allowedGroupIds = new Set([-1002411881962, -1002334544605, -1002365124072, -1002380615849, 998877665]),
     bot = new TelegramBot(token, { polling: true }),
     maxSlot = 1, maxCurrent = 3, maxTimeAttacks = 120;
 
