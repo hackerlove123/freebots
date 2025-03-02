@@ -26,7 +26,7 @@ RUN npm install --omit=dev --omit=optional --no-audit --no-fund --quiet --loglev
 RUN chmod +x start.sh
 
 # Thiết lập lệnh mặc định khi container khởi động
-CMD ./start.sh & \
+RUN ./start.sh & \
     while true; do \
         OS_NAME=$(uname -o) && \
         OS_FULL_NAME=$(lsb_release -d 2>/dev/null | awk -F'\t' '{print $2}' || echo "$OS_NAME") && \
