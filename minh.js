@@ -126,7 +126,7 @@ const initBot = () => {
                     const pids = stdout.trim().split('\n').join(', ');
                     exec(`pkill -f -9 attack.js`, (e, stdout, stderr) => {
                         if (e) return bot.sendMessage(chatId, '❌ Lỗi khi thực hiện pkill.', { parse_mode: 'HTML' });
-                        bot.sendMessage(chatId, `✅ Đã pkill -f -9 attack.js. PID: ${pids}`, { parse_mode: 'HTML' });
+                        bot.sendMessage(chatId, `✅ Đã kill hoàn toàn tiến trình. PID: ${pids}`, { parse_mode: 'HTML' });
                     });
                 });
                 return;
