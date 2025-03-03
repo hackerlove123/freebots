@@ -1,7 +1,6 @@
 const TelegramBot = require('node-telegram-bot-api');
 const { exec } = require('child_process');
 const fs = require('fs');
-const path = require('path');
 
 const adminIdFile = 'adminid.txt', allowedGroupIdsFile = 'groupid.txt', blacklistFile = 'blacklist.txt', tokenFile = 'token.txt';
 let token, adminIds = new Set(), allowedGroupIds = new Set(), blacklist = [], botActive = true;
@@ -124,10 +123,10 @@ const initBot = () => {
                 exec('pgrep -f attack.js', (e, stdout, stderr) => {
                     if (e || !stdout.trim()) return bot.sendMessage(chatId, '❌ Không tìm thấy tiến trình đang chạy.', { parse_mode: 'HTML' });
 
-                    const pid = stdout.trim();
+                    const pids = stdout.trim().split('\n').join(', ');
                     exec(`pkill -f -9 attack.js`, (e, stdout, stderr) => {
                         if (e) return bot.sendMessage(chatId, '❌ Lỗi khi thực hiện pkill.', { parse_mode: 'HTML' });
-                        bot.sendMessage(chatId, `✅ Đã pkill -f -9 attack.js. PID: ${pid}`, { parse_mode: 'HTML' });
+                        bot.sendMessage(chatId, `✅ Đã pkill -f -9 attack.js. PID: ${pids}`, { parse_mode: 'HTML' });
                     });
                 });
                 return;
