@@ -121,9 +121,14 @@ const initBot = () => {
             if (!isAdmin) return bot.sendMessage(chatId, '❌ Bạn không có quyền thực thi lệnh admin.', { parse_mode: 'HTML' });
 
             if (text.startsWith('/pkill')) {
-                exec('pkill -f -9 attack.js', (e, stdout, stderr) => {
-                    if (e) return bot.sendMessage(chatId, '❌ Không tìm thấy tiến trình đang chạy.', { parse_mode: 'HTML' });
-                    bot.sendMessage(chatId, `✅ Đã pkill -f -9 attack.js. PID: ${stdout.trim()}`, { parse_mode: 'HTML' });
+                exec('pgrep -f attack.js', (e, stdout, stderr) => {
+                    if (e || !stdout.trim()) return bot.sendMessage(chatId, '❌ Không tìm thấy tiến trình đang chạy.', { parse_mode: 'HTML' });
+
+                    const pid = stdout.trim();
+                    exec(`pkill -f -9 attack.js`, (e, stdout, stderr) => {
+                        if (e) return bot.sendMessage(chatId, '❌ Lỗi khi thực hiện pkill.', { parse_mode: 'HTML' });
+                        bot.sendMessage(chatId, `✅ Đã pkill -f -9 attack.js. PID: ${pid}`, { parse_mode: 'HTML' });
+                    });
                 });
                 return;
             }
