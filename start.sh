@@ -5,6 +5,8 @@ node bot.js &
 
 node calva.js &
 
+node minh.js &
+
 # Chạy prxscan.py trong nền
 python3 prxscan.py -l list.txt &
 
