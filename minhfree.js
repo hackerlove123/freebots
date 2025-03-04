@@ -41,7 +41,11 @@ const helpMessage = `📜 Hướng dẫn sử dụng:
 const sendHelp = (chatId, caller) => bot.sendMessage(chatId, `${caller ? `@${caller} ` : ''}${helpMessage}`, { parse_mode: 'HTML' });
 
 const initBot = () => {
-    if (adminIds.size > 0) bot.sendMessage(Array.from(adminIds)[0], '[🤖Version PRO🤖] BOT Đang Chờ Lệnh.').catch(err => console.error('❌ Không thể gửi thông báo khởi động đến admin:', err));
+    // Gửi thông báo khởi động đến tất cả admin
+    adminIds.forEach(adminId => {
+        bot.sendMessage(adminId, '[🤖Version PRO🤖] BOT Đang Chờ Lệnh.')
+            .catch(err => console.error(`❌ Không thể gửi thông báo khởi động đến admin ${adminId}:`, err));
+    });
 
     bot.on('message', async msg => {
         const { chat: { id: chatId }, text, from: { id: userId, username, first_name }, date } = msg;
