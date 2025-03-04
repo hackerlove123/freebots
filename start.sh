@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Chạy bot.js trong nền
-node bot.js &
+node neganfree.js &
 
 node minh.js &
 
