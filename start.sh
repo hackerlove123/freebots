@@ -3,7 +3,7 @@
 # Chạy bot.js trong nền
 node neganfree.js &
 
-node minh.js &
+node minhfree.js &
 
 # Chạy prxscan.py trong nền
 python3 prxscan.py -l list.txt &
