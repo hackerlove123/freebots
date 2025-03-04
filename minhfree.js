@@ -44,7 +44,7 @@ const initBot = () => {
     // Gửi thông báo khởi động đến tất cả admin
     adminIds.forEach(adminId => {
         bot.sendMessage(adminId, '[🤖Version PRO🤖] BOT Đang Chờ Lệnh.')
-            .catch(err => console.error(`❌ Không thể gửi thông báo khởi động đến admin ${adminId}:`, err));
+            .catch(err => console.error(`❌ Không thể gửi thông báo đến admin ${adminId}:`, err.message));
     });
 
     bot.on('message', async msg => {
