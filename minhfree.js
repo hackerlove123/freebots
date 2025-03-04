@@ -36,24 +36,20 @@ const helpMessage = `📜 Hướng dẫn sử dụng:
 
 🔐 Quyền hạn:
 - Admin: Có thể chỉ định thời gian tùy ý (tối đa ${maxTimeAttacks} giây), sử dụng lệnh <code>/pkill</code>, <code>/on</code>, <code>/off</code>.
-- Người dùng thường: Thời gian tối đa 120 giây, không thể sử dụng lệnh admin.`;
+- Người dùng thường: Thời gian tối đa 120 giây, không thể sử dụng lệnh admin.
+
+💳 Mua Key VIP Ngày/Tuần/Tháng liên hệ @revenvenger.`;
 
 const sendHelp = (chatId, caller) => bot.sendMessage(chatId, `${caller ? `@${caller} ` : ''}${helpMessage}`, { parse_mode: 'HTML' });
 
 const initBot = () => {
-    // Gửi thông báo khởi động đến tất cả admin
-    adminIds.forEach(adminId => {
-        bot.sendMessage(adminId, '[🤖Version PRO🤖] BOT Đang Chờ Lệnh.')
-            .catch(err => console.error(`❌ Không thể gửi thông báo đến admin ${adminId}:`, err.message));
-    });
-
     bot.on('message', async msg => {
         const { chat: { id: chatId }, text, from: { id: userId, username, first_name }, date } = msg;
         const isAdmin = adminIds.has(userId.toString()), isGroup = allowedGroupIds.has(chatId.toString()), caller = username || first_name;
 
         if (date * 1000 < botStartTime) return;
-        if (!isAdmin && !isGroup) return bot.sendMessage(chatId, '❌ Bạn không có quyền sử dụng liên hệ: @revenvenger.', { parse_mode: 'HTML' });
-        if (!text) return sendHelp(chatId, caller);
+        if (!isGroup) return bot.sendMessage(chatId, '❌ Bot chỉ hoạt động trong nhóm được cấp phép.', { parse_mode: 'HTML' });
+        if (!text) return;
 
         if (text === '/help') return sendHelp(chatId, caller);
 
@@ -61,7 +57,7 @@ const initBot = () => {
             if (!botActive) return bot.sendMessage(chatId, '❌ Bot hiện đang tắt. Chỉ admin có thể bật lại.', { parse_mode: 'HTML' });
 
             const [host, time, full] = text.split(' ');
-            if (!host || isNaN(time)) return sendHelp(chatId, caller);
+            if (!host || isNaN(time)) return bot.sendMessage(chatId, '🚫 Sai định dạng! Nhập theo: <code>https://example.com 120</code>.', { parse_mode: 'HTML' });
 
             // Kiểm tra blacklist
             const isBlacklisted = blacklist.some(blackUrl => host.includes(blackUrl));
@@ -148,8 +144,6 @@ const initBot = () => {
                 return;
             }
         }
-
-        sendHelp(chatId, caller);
     });
 };
 
