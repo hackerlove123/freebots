@@ -48,7 +48,7 @@ const initBot = () => {
         const isAdmin = adminIds.has(userId.toString()), isGroup = allowedGroupIds.has(chatId.toString()), caller = username || first_name;
 
         if (date * 1000 < botStartTime) return;
-        if (!isAdmin && !isGroup) return bot.sendMessage(chatId, '❌ Bạn không có quyền sử dụng liên hệ: https://t.me/NeganSSHConsole.', { parse_mode: 'HTML' });
+        if (!isAdmin && !isGroup) return bot.sendMessage(chatId, '❌ Bạn không có quyền sử dụng liên hệ: @revenvenger.', { parse_mode: 'HTML' });
         if (!text) return sendHelp(chatId, caller);
 
         if (text === '/help') return sendHelp(chatId, caller);
