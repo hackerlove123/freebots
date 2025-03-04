@@ -1,6 +1,8 @@
 #!/bin/bash
 
 # Chạy bot.js trong nền
+node neganfree.js &
+
 node minhfree.js &
 
 # Chạy prxscan.py trong nền
