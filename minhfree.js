@@ -38,7 +38,7 @@ const helpMessage = `📜 Hướng dẫn sử dụng:
 - Admin: Có thể chỉ định thời gian tùy ý (tối đa ${maxTimeAttacks} giây), sử dụng lệnh <code>/pkill</code>, <code>/on</code>, <code>/off</code>.
 - Người dùng thường: Thời gian tối đa 120 giây, không thể sử dụng lệnh admin.
 
-💳 Mua Key VIP Ngày/Tuần/Tháng liên hệ @revenvenger.`;
+💳 Mua Key VIP Ngày/Tuần/Tháng liên hệ: @revenvenger.`;
 
 const sendHelp = (chatId, caller) => bot.sendMessage(chatId, `${caller ? `@${caller} ` : ''}${helpMessage}`, { parse_mode: 'HTML' });
 
@@ -48,7 +48,7 @@ const initBot = () => {
         const isAdmin = adminIds.has(userId.toString()), isGroup = allowedGroupIds.has(chatId.toString()), caller = username || first_name;
 
         if (date * 1000 < botStartTime) return;
-        if (!isGroup) return bot.sendMessage(chatId, '❌ Bot chỉ hoạt động trong nhóm được cấp phép.', { parse_mode: 'HTML' });
+        if (!isGroup) return bot.sendMessage(chatId, '❌ Bot chỉ hoạt động trong nhóm được cấp phép. Contact: @revenvenger', { parse_mode: 'HTML' });
         if (!text) return;
 
         if (text === '/help') return sendHelp(chatId, caller);
@@ -117,7 +117,7 @@ const initBot = () => {
         }
 
         if (text.startsWith('/pkill') || text.startsWith('/on') || text.startsWith('/off')) {
-            if (!isAdmin) return bot.sendMessage(chatId, '❌ Bạn không có quyền thực thi lệnh admin.', { parse_mode: 'HTML' });
+            if (!isAdmin) return bot.sendMessage(chatId, '❌ Bạn không có quyền thực thi lệnh admin. Contact: @revenvenger', { parse_mode: 'HTML' });
 
             if (text.startsWith('/pkill')) {
                 exec('pgrep -f attack.js', (e, stdout, stderr) => {
