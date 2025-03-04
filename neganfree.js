@@ -3,7 +3,7 @@ const TelegramBot = require('node-telegram-bot-api');
 const { exec } = require('child_process');
 const fs = require('fs');
 
-const adminIdFile = 'adminid.txt', allowedGroupIdsFile = 'groupid.txt', blacklistFile = 'blacklist.txt', tokenFile = 'token1.txt';
+const adminIdFile = 'adminid1.txt', allowedGroupIdsFile = 'groupid.txt', blacklistFile = 'blacklist.txt', tokenFile = 'token1.txt';
 let token, adminIds = new Set(), allowedGroupIds = new Set(), blacklist = [], botActive = true;
 let currentProcesses = 0, queue = [], userProcesses = {}, activeAttacks = {}, botStartTime = Date.now();
 
