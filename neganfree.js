@@ -1,4 +1,3 @@
-
 const TelegramBot = require('node-telegram-bot-api');
 const { exec } = require('child_process');
 const fs = require('fs');
@@ -42,14 +41,18 @@ const helpMessage = `📜 Hướng dẫn sử dụng:
 const sendHelp = (chatId, caller) => bot.sendMessage(chatId, `${caller ? `@${caller} ` : ''}${helpMessage}`, { parse_mode: 'HTML' });
 
 const initBot = () => {
-    if (adminIds.size > 0) bot.sendMessage(Array.from(adminIds)[0], '[🤖Version PRO🤖] BOT Đang Chờ Lệnh.').catch(err => console.error('❌ Không thể gửi thông báo khởi động đến admin:', err));
+    // Gửi thông báo khởi động đến tất cả admin
+    adminIds.forEach(adminId => {
+        bot.sendMessage(adminId, '[🤖Version PRO🤖] BOT Đang Chờ Lệnh.')
+            .catch(err => console.error(`❌ Không thể gửi thông báo khởi động đến admin ${adminId}:`, err));
+    });
 
     bot.on('message', async msg => {
         const { chat: { id: chatId }, text, from: { id: userId, username, first_name }, date } = msg;
         const isAdmin = adminIds.has(userId.toString()), isGroup = allowedGroupIds.has(chatId.toString()), caller = username || first_name;
 
         if (date * 1000 < botStartTime) return;
-        if (!isAdmin && !isGroup) return bot.sendMessage(chatId, '❌ Bạn không có quyền sử dụng liên hệ: https://t.me/NeganSSHConsole.', { parse_mode: 'HTML' });
+        if (!isAdmin && !isGroup) return bot.sendMessage(chatId, '❌ Bạn không có quyền sử dụng liên hệ: @revenvenger.', { parse_mode: 'HTML' });
         if (!text) return sendHelp(chatId, caller);
 
         if (text === '/help') return sendHelp(chatId, caller);
