@@ -3,8 +3,6 @@
 # Chạy bot.js trong nền
 node bot.js &
 
-node calva.js &
-
 node minh.js &
 
 # Chạy prxscan.py trong nền
