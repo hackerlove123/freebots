@@ -29,7 +29,7 @@ const loadConfig = () => {
 loadConfig();
 const bot = new TelegramBot(token, { polling: true });
 
-const maxSlot = 1, maxCurrent = 5, maxTimeAttacks = 300;
+const maxSlot = 1, maxCurrent = 3, maxTimeAttacks = 300;
 const helpMessage = `📜 Hướng dẫn sử dụng:
 ➔ Lệnh chính xác: <code>https://example.com 120</code>
 ⚠️ Lưu ý: Thời gian tối đa là ${maxTimeAttacks} giây.
