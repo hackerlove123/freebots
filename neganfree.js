@@ -48,7 +48,7 @@ const initBot = () => {
         const isAdmin = adminIds.has(userId.toString()), isGroup = allowedGroupIds.has(chatId.toString()), caller = username || first_name;
 
         if (date * 1000 < botStartTime) return;
-        if (!isGroup) return bot.sendMessage(chatId, '❌ Bot chỉ hoạt động trong nhóm được cấp phép. Contact: @revenvenger', { parse_mode: 'HTML' });
+        if (!isGroup) return bot.sendMessage(chatId, '❌ Bot chỉ hoạt động trong nhóm được cấp phép. Contact: @adam022022.', { parse_mode: 'HTML' });
         if (!text) return;
 
         if (text === '/help') return sendHelp(chatId, caller);
